@@ -24,7 +24,7 @@ func main() {
 
 func loginHandler(c *gin.Context) {
 	username := c.PostForm("username")
-	// password := c.PostForm("password")
+	password := c.PostForm("password")
 
 	// You can perform your authentication logic here.
 	// For simplicity, let's assume the authentication is successful.
