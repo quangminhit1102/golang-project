@@ -9,9 +9,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// My own Error type that will help return my customized Error info
-//
-//	{"database": {"hello":"no such table", error: "not_exists"}}
+// {"database": {"hello":"no such table", error: "not_exists"}}
 type CommonError struct {
 	Errors map[string]interface{} `json:"errors"`
 }
@@ -23,13 +21,7 @@ func NewValidatorError(err error) CommonError {
 	res.Errors = make(map[string]interface{})
 	errs := err.(validator.ValidationErrors)
 	for _, v := range errs {
-		// can translate each error one at a time.
-		//fmt.Println("gg",v.NameNamespace)
-		// if v.Param() != "" {
-		// 	res.Errors[v.Field()] = fmt.Sprintf("{%v: %v}", v.Tag(), v.Param())
-		// } else {
-		// 	res.Errors[v.Field()] = fmt.Sprintf("{key: %v}", v.Tag())
-		// }
+		// Switch Type Error And Custom Message
 		switch v.Tag() {
 		case "required":
 			res.Errors[v.Field()] = fmt.Sprintf("The Field %s is required!", v.Field())
@@ -37,6 +29,10 @@ func NewValidatorError(err error) CommonError {
 			res.Errors[v.Field()] = "Email is not valid!"
 		case "required_without":
 			res.Errors[v.Field()] = fmt.Sprintf("%s is required if %s is not supplied", v.Field(), v.Param())
+		case "password-strength":
+			res.Errors[v.Field()] = "Password mus contain at least 1 Uppercase, 1 Lower case, 1 number, 1 special character"
+		case "contains":
+			res.Errors[v.Field()] = fmt.Sprintf("%s must contain at least one %s", v.Field(), v.Param())
 		case "lt", "ltfield":
 			param := v.Param()
 			if param == "" {
