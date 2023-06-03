@@ -3,9 +3,14 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"restfulAPI/Golang/utils"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/locales/en"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -13,8 +18,10 @@ var (
 	router = gin.Default()
 	secret = "your-secret-key"
 )
+var validate *validator.Validate
 
 func main() {
+	validate = validator.New()
 	router.POST("/login", loginHandler)
 	router.POST("/refresh", refreshHandler)
 	router.GET("/protected", authMiddleware(), protectedHandler)
@@ -22,27 +29,83 @@ func main() {
 	router.Run(":8080")
 }
 
+type LoginModel struct {
+	//https://pkg.go.dev/github.com/go-playground/validator#hdr-Baked_In_Validators_and_Tags |GIN VALIDATOR TAG|
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+func parseFieldError(e validator.FieldError) string {
+	// workaround to the fact that the `gt|gtfield=Start` gets passed as an entire tag for some reason
+	// https://github.com/go-playground/validator/issues/926
+	fieldPrefix := fmt.Sprintf("The field %s", e.Field())
+	tag := strings.Split(e.Tag(), "|")[0]
+	switch tag {
+	case "required_without":
+		return fmt.Sprintf("%s is required if %s is not supplied", e.Field(), e.Param())
+	case "lt", "ltfield":
+		param := e.Param()
+		if param == "" {
+			param = time.Now().Format(time.RFC3339)
+		}
+		return fmt.Sprintf("%s must be less than %s", fieldPrefix, param)
+	case "gt", "gtfield":
+		param := e.Param()
+		if param == "" {
+			param = time.Now().Format(time.RFC3339)
+		}
+		return fmt.Sprintf("%s must be greater than %s", fieldPrefix, param)
+	default:
+		// if it's a tag for which we don't have a good format string yet we'll try using the default english translator
+		english := en.New()
+		translator := ut.New(english, english)
+		if translatorInstance, found := translator.GetTranslator("en"); found {
+			return e.Translate(translatorInstance)
+		} else {
+			return fmt.Errorf("%v", e).Error()
+		}
+	}
+}
 func loginHandler(c *gin.Context) {
-	username := c.PostForm("username")
-	password := c.PostForm("password")
+	var loginBody LoginModel
+	c.Writer.Header().Set("Content-Type", "application/json")
 
-	// You can perform your authentication logic here.
-	// For simplicity, let's assume the authentication is successful.
+	// To Get From |Query| USING: c.DefaultQuery("<name>","<Default Value>")
+	// To Get From |Param| USING: c.Param("name")
+	// To Get From |JSON | USING: Bellow Code :)
 
-	// Create the token
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
-	claims["username"] = username
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires in 24 hours
-
-	// Sign the token with the secret key
-	tokenString, err := token.SignedString([]byte(secret))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+	// if err := c.BindJSON(&loginBody); err != nil {
+	// 	c.JSON(http.StatusOK, gin.H{"error": err.Error()})
+	// 	return
+	// }
+	_ = c.ShouldBind(&loginBody)
+	validate := validator.New()
+	if err := validate.Struct(loginBody); err != nil {
+		c.JSON(http.StatusOK, gin.H{"errors": utils.NewValidatorError(err)})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": tokenString})
+	email := loginBody.Email
+	password := loginBody.Password
+	c.JSON(http.StatusOK, gin.H{"email": email, "password": password})
+
+	// // You can perform your authentication logic here.
+	// // For simplicity, let's assume the authentication is successful.
+
+	// // Create the token
+	// token := jwt.New(jwt.SigningMethodHS256)
+	// claims := token.Claims.(jwt.MapClaims)
+	// claims["username"] = email
+	// claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires in 24 hours
+
+	// // Sign the token with the secret key
+	// tokenString, err := token.SignedString([]byte(secret))
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+	// 	return
+	// }
+
+	// c.JSON(http.StatusOK, gin.H{"token": tokenString})
 }
 
 func refreshHandler(c *gin.Context) {
