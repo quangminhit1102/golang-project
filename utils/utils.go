@@ -2,6 +2,8 @@ package utils
 
 import (
 	"fmt"
+	"log"
+	"net/smtp"
 	"time"
 
 	"github.com/go-playground/locales/en"
@@ -60,4 +62,18 @@ func NewValidatorError(err error) CommonError {
 
 	}
 	return res
+}
+func SendMail() {
+	// Choose auth method and set it up
+	auth := smtp.PlainAuth("", "quangminhit.test01@gmail.com", "czkizmswbiljzmos", "smtp.gmail.com")
+	// Here we do it all: connect to our server, set up a message and send it
+	to := []string{"minh1122000@gmail.com"}
+	msg := []byte("To: kate.doe@example.com\r\n" +
+		"Subject: Why aren’t you using Mailtrap yet?\r\n" +
+		"\r\n" +
+		"Here’s the space for our great sales pitch\r\n")
+	err := smtp.SendMail("smtp.gmail.com:587", auth, "quangminhit.test01@gmail.com", to, msg)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

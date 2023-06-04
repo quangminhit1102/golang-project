@@ -98,7 +98,7 @@ func registerHandler(c *gin.Context) {
 
 }
 func loginHandler(c *gin.Context) {
-
+	utils.SendMail()
 	var loginBody LoginModel
 	c.Writer.Header().Set("Content-Type", "application/json")
 
