@@ -1,10 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"restfulAPI/Golang/database"
-	"restfulAPI/Golang/models"
+	User "restfulAPI/Golang/models"
 	"restfulAPI/Golang/utils"
 	"time"
 	"unicode"
@@ -12,21 +13,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 )
 
 var (
 	router = gin.Default()
 	secret = "your-secret-key"
 )
+
 // var validate *validator.Validate
 
 func main() {
 	db := database.Init()
-	db.AutoMigrate(&models.User{})
+	db.AutoMigrate(&User.User{})
 	sqlDB, _ := db.DB()
-	sqlDB.Close()
+	defer sqlDB.Close()
 
 	router.POST("/login", loginHandler)
+	router.POST("/register", registerHandler)
 	router.POST("/refresh", refreshHandler)
 	router.GET("/protected", authMiddleware(), protectedHandler)
 	router.Run(":8080")
@@ -66,8 +70,35 @@ func validatePassword(s string) bool {
 	}
 	return hasMinLen && hasUpper && hasLower && hasNumber && hasSpecial
 }
+func registerHandler(c *gin.Context) {
+	userRegister := &User.User{}
+	_ = c.ShouldBind(&userRegister)
+	validate := validator.New()
+	validate.RegisterValidation("password-strength", ValidatePassword)
+	if err := validate.Struct(userRegister); err != nil {
+		c.JSON(http.StatusOK, utils.NewValidatorError(err))
+		return
+	}
+	email := userRegister.Email
+	password := userRegister.Password
 
+	_, err := User.FindOneByEmail(email)
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		// handle record not found
+		c.JSON(http.StatusOK, gin.H{"error": true, "message": "Email Already exists!"})
+		return
+	}
+
+	_, error := User.SaveUser(&User.User{Email: email, Password: password})
+	if error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
+	} else {
+		c.JSON(http.StatusCreated, gin.H{"error": false, "message": "registed User Successfully!"})
+	}
+
+}
 func loginHandler(c *gin.Context) {
+
 	var loginBody LoginModel
 	c.Writer.Header().Set("Content-Type", "application/json")
 
@@ -89,25 +120,34 @@ func loginHandler(c *gin.Context) {
 	}
 	email := loginBody.Email
 	password := loginBody.Password
-	c.JSON(http.StatusOK, gin.H{"email": email, "password": password})
 
-	// // You can perform your authentication logic here.
-	// // For simplicity, let's assume the authentication is successful.
+	// c.JSON(http.StatusOK, gin.H{"email": email, "password": password})
 
-	// // Create the token
-	// token := jwt.New(jwt.SigningMethodHS256)
-	// claims := token.Claims.(jwt.MapClaims)
-	// claims["username"] = email
-	// claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires in 24 hours
+	// Find User
+	user, err := User.FindOneByEmail(email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
+	}
+	// Check Password
+	if user != nil && user.Password == password {
+		// Create the token
+		token := jwt.New(jwt.SigningMethodHS256)
+		claims := token.Claims.(jwt.MapClaims)
+		claims["username"] = email
+		claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires in 24 hours
 
-	// // Sign the token with the secret key
-	// tokenString, err := token.SignedString([]byte(secret))
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-	// 	return
-	// }
+		// Sign the token with the secret key
+		tokenString, err := token.SignedString([]byte(secret))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+			return
+		}
 
-	// c.JSON(http.StatusOK, gin.H{"token": tokenString})
+		c.JSON(http.StatusOK, gin.H{"error": false, "message": "Authentication Successfully!", "token": tokenString})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"error": true, "message": "Email or Password are invalid!"})
+	}
+
 }
 
 func refreshHandler(c *gin.Context) {
