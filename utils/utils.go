@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/rand"
 	"fmt"
 	"log"
 	"net/smtp"
@@ -63,17 +64,23 @@ func NewValidatorError(err error) CommonError {
 	}
 	return res
 }
-func SendMail() {
+func SendMail(toEmail string) {
 	// Choose auth method and set it up
 	auth := smtp.PlainAuth("", "quangminhit.test01@gmail.com", "czkizmswbiljzmos", "smtp.gmail.com")
 	// Here we do it all: connect to our server, set up a message and send it
-	to := []string{"minh1122000@gmail.com"}
-	msg := []byte("To: kate.doe@example.com\r\n" +
-		"Subject: Why aren’t you using Mailtrap yet?\r\n" +
+	to := []string{toEmail}
+	msg := []byte("To: " + toEmail + "\r\n" +
+		"Subject: Reset Password for Application |Please follow these instruction|\r\n" +
 		"\r\n" +
-		"Here’s the space for our great sales pitch\r\n")
+		"To reset password please click \r\n: " + "http://localhost:8080/reset-password/")
 	err := smtp.SendMail("smtp.gmail.com:587", auth, "quangminhit.test01@gmail.com", to, msg)
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func RandomTokenGenerator() string {
+	b := make([]byte, 4)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }

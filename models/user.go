@@ -2,6 +2,7 @@ package User
 
 import (
 	"restfulAPI/Golang/database"
+	"restfulAPI/Golang/utils"
 )
 
 type User struct {
@@ -25,4 +26,10 @@ func SaveUser(user *User) (int, error) {
 	db := database.GetDB()
 	error := db.Create(user).Error
 	return user.Id, error
+}
+func UpdateOneByEmail(email string) (*User, error) {
+	db := database.GetDB()
+	var user = &User{}
+	error := db.Model(user).Updates(&User{ForgotPasswordToken: utils.RandomTokenGenerator(), ForgotPasswordExpire: "ExpireTime"}).Error
+	return user, error
 }

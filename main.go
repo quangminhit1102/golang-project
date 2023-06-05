@@ -32,6 +32,8 @@ func main() {
 	router.POST("/login", loginHandler)
 	router.POST("/register", registerHandler)
 	router.POST("/refresh", refreshHandler)
+	router.POST("/forgot-password", forgotpasswordHander)
+	// router.POST("/reset-password/:token", resetpasswordHandler)
 	router.GET("/protected", authMiddleware(), protectedHandler)
 	router.Run(":8080")
 }
@@ -98,7 +100,6 @@ func registerHandler(c *gin.Context) {
 
 }
 func loginHandler(c *gin.Context) {
-	utils.SendMail()
 	var loginBody LoginModel
 	c.Writer.Header().Set("Content-Type", "application/json")
 
@@ -233,4 +234,32 @@ func authMiddleware() gin.HandlerFunc {
 func protectedHandler(c *gin.Context) {
 	username, _ := c.Get("username")
 	c.JSON(http.StatusOK, gin.H{"message": "Protected endpoint", "username": username})
+}
+
+func forgotpasswordHander(c *gin.Context) {
+	var jsonMap map[string]interface{}
+	if err := c.ShouldBindJSON(&jsonMap); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+	// Access the specific field
+	email, ok := jsonMap["email"].(string)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid field 'name'"})
+		return
+	}
+
+	_, err := User.FindOneByEmail(email)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email doesn't exists!"})
+		return
+	}
+	utils.SendMail(email)
+	c.JSON(http.StatusBadRequest, gin.H{"error": "Sent Mail To Reset Password Success!"})
+	return
+}
+
+func resetpasswordHander(c *gin.Context) {
+	// tokenReset := c.Param("token")
+	// user, error = User.FindOneByEmail()
 }
