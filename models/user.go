@@ -1,8 +1,10 @@
 package User
 
 import (
+	"errors"
 	"restfulAPI/Golang/database"
-	"restfulAPI/Golang/utils"
+
+	"gorm.io/gorm"
 )
 
 type User struct {
@@ -27,9 +29,12 @@ func SaveUser(user *User) (int, error) {
 	error := db.Create(user).Error
 	return user.Id, error
 }
-func UpdateOneByEmail(email string) (*User, error) {
+func UpdateOneByEmail(email string, updateField interface{}) (*User, error) {
 	db := database.GetDB()
-	var user = &User{}
-	error := db.Model(user).Updates(&User{ForgotPasswordToken: utils.RandomTokenGenerator(), ForgotPasswordExpire: "ExpireTime"}).Error
+	user, err := FindOneByEmail(email)
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return &User{}, err
+	}
+	error := db.Model(user).Updates(updateField).Error
 	return user, error
 }

@@ -64,15 +64,12 @@ func NewValidatorError(err error) CommonError {
 	}
 	return res
 }
-func SendMail(toEmail string) {
+func SendMail(toEmail, subject, body string) {
 	// Choose auth method and set it up
 	auth := smtp.PlainAuth("", "quangminhit.test01@gmail.com", "czkizmswbiljzmos", "smtp.gmail.com")
 	// Here we do it all: connect to our server, set up a message and send it
 	to := []string{toEmail}
-	msg := []byte("To: " + toEmail + "\r\n" +
-		"Subject: Reset Password for Application |Please follow these instruction|\r\n" +
-		"\r\n" +
-		"To reset password please click \r\n: " + "http://localhost:8080/reset-password/")
+	msg := []byte(body)
 	err := smtp.SendMail("smtp.gmail.com:587", auth, "quangminhit.test01@gmail.com", to, msg)
 	if err != nil {
 		log.Fatal(err)

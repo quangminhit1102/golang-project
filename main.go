@@ -254,9 +254,15 @@ func forgotpasswordHander(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email doesn't exists!"})
 		return
 	}
-	utils.SendMail(email)
+
+	resetPasswordToken := utils.RandomTokenGenerator()
+	body := "To: " + email + "\r\n" +
+		"Subject: Reset Password for Application |Please follow these instruction|\r\n" +
+		"\r\n" +
+		"To reset password please click \r\n: " + "http://localhost:8080/reset-password/" + resetPasswordToken
+	utils.SendMail(email, "Reset Password for Application", body)
+	User.UpdateOneByEmail(email, &User.User{ForgotPasswordToken: resetPasswordToken, ForgotPasswordExpire: "???"})
 	c.JSON(http.StatusBadRequest, gin.H{"error": "Sent Mail To Reset Password Success!"})
-	return
 }
 
 func resetpasswordHander(c *gin.Context) {
