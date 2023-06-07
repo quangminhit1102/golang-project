@@ -32,7 +32,7 @@ func SaveUser(user *User) (int, error) {
 func UpdateOneByEmail(email string, updateField interface{}) (*User, error) {
 	db := database.GetDB()
 	user, err := FindOneByEmail(email)
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return &User{}, err
 	}
 	error := db.Model(user).Updates(updateField).Error

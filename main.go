@@ -33,7 +33,7 @@ func main() {
 	router.POST("/register", registerHandler)
 	router.POST("/refresh", refreshHandler)
 	router.POST("/forgot-password", forgotpasswordHander)
-	// router.POST("/reset-password/:token", resetpasswordHandler)
+	router.POST("/reset-password/", resetpasswordHandler)
 	router.GET("/protected", authMiddleware(), protectedHandler)
 	router.Run(":8080")
 }
@@ -259,13 +259,48 @@ func forgotpasswordHander(c *gin.Context) {
 	body := "To: " + email + "\r\n" +
 		"Subject: Reset Password for Application |Please follow these instruction|\r\n" +
 		"\r\n" +
-		"To reset password please click \r\n: " + "http://localhost:8080/reset-password/" + resetPasswordToken
+		"To reset password please click \r\n: " + "http://localhost:8080/reset-password/?email=" + email + "&token=" + resetPasswordToken
 	utils.SendMail(email, "Reset Password for Application", body)
 	User.UpdateOneByEmail(email, &User.User{ForgotPasswordToken: resetPasswordToken, ForgotPasswordExpire: "???"})
 	c.JSON(http.StatusBadRequest, gin.H{"error": "Sent Mail To Reset Password Success!"})
 }
 
-func resetpasswordHander(c *gin.Context) {
-	// tokenReset := c.Param("token")
-	// user, error = User.FindOneByEmail()
+type ResetPasswordReq struct {
+	NewPassword     string `json:"newPassword" validate:"required,min=8,password-strength"`
+	ConfirmPassword string `json:"confirmPassword" validate:"required,min=8,password-strength,eqcsfield=NewPassword"`
+}
+
+func resetpasswordHandler(c *gin.Context) {
+	email := c.DefaultQuery("email", "")
+	resetToken := c.DefaultQuery("token", "")
+	if email == "" || resetToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Request!"})
+		return
+	}
+	user, err := User.FindOneByEmail(email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Request!"})
+		return
+	}
+	// Check reset token
+	if resetToken != user.ForgotPasswordToken {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid token!"})
+		return
+	}
+	// Bind Body
+	resetPasswordReq := &ResetPasswordReq{}
+	_ = c.ShouldBind(&resetPasswordReq)
+	validate := validator.New()
+	validate.RegisterValidation("password-strength", ValidatePassword)
+	if err := validate.Struct(resetPasswordReq); err != nil {
+		c.JSON(http.StatusOK, utils.NewValidatorError(err))
+		return
+	}
+	newPassword := resetPasswordReq.NewPassword
+	// confirmPassword := resetPasswordReq.ConfirmPassword
+
+	if _, err := User.UpdateOneByEmail(email, &User.User{Password: newPassword}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+	}
+	c.JSON(http.StatusOK, gin.H{"error": false, "messsage": "Reset password succesfully!"})
 }
