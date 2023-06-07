@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -90,8 +91,8 @@ func registerHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"error": true, "message": "Email Already exists!"})
 		return
 	}
-
-	_, error := User.SaveUser(&User.User{Email: email, Password: password})
+	hashedByte, _ := bcrypt.GenerateFromPassword([]byte(password), 12)
+	_, error := User.SaveUser(&User.User{Email: email, Password: string(hashedByte)})
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
 	} else {
@@ -127,10 +128,17 @@ func loginHandler(c *gin.Context) {
 	// Find User
 	user, err := User.FindOneByEmail(email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Email or Password!"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error!"})
+		return
 	}
+
+	errorCompare := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	// Check Password
-	if user != nil && user.Password == password {
+	if user != nil && errorCompare == nil {
 		// Create the token
 		token := jwt.New(jwt.SigningMethodHS256)
 		claims := token.Claims.(jwt.MapClaims)
@@ -266,8 +274,8 @@ func forgotpasswordHander(c *gin.Context) {
 }
 
 type ResetPasswordReq struct {
-	NewPassword     string `json:"newPassword" validate:"required,min=8,password-strength"`
-	ConfirmPassword string `json:"confirmPassword" validate:"required,min=8,password-strength,eqcsfield=NewPassword"`
+	NewPassword     string `json:"newPassword" field:"New Password" validate:"required,min=8,password-strength"`
+	ConfirmPassword string `json:"confirmPassword" field:"Confirm Password" validate:"required,min=8,password-strength,eqcsfield=NewPassword"`
 }
 
 func resetpasswordHandler(c *gin.Context) {
@@ -292,14 +300,15 @@ func resetpasswordHandler(c *gin.Context) {
 	_ = c.ShouldBind(&resetPasswordReq)
 	validate := validator.New()
 	validate.RegisterValidation("password-strength", ValidatePassword)
+	
 	if err := validate.Struct(resetPasswordReq); err != nil {
 		c.JSON(http.StatusOK, utils.NewValidatorError(err))
 		return
 	}
 	newPassword := resetPasswordReq.NewPassword
-	// confirmPassword := resetPasswordReq.ConfirmPassword
+	hashedByte, _ := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
 
-	if _, err := User.UpdateOneByEmail(email, &User.User{Password: newPassword}); err != nil {
+	if _, err := User.UpdateOneByEmail(email, &User.User{Password: string(hashedByte)}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 	}
 	c.JSON(http.StatusOK, gin.H{"error": false, "messsage": "Reset password succesfully!"})

@@ -38,6 +38,8 @@ func NewValidatorError(err error) CommonError {
 			res.Errors[v.Field()] = fmt.Sprintf("%s must be minimum %s characters length", v.Field(), v.Param())
 		case "contains":
 			res.Errors[v.Field()] = fmt.Sprintf("%s must contain at least one %s", v.Field(), v.Param())
+		case "eqcsfield":
+			res.Errors[v.Field()] = fmt.Sprintf("%s must match with %s", v.Field(), v.Param())
 		case "lt", "ltfield":
 			param := v.Param()
 			if param == "" {
