@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"restfulAPI/Golang/database"
 	User "restfulAPI/Golang/models"
-	"restfulAPI/Golang/utils"
+	"restfulAPI/Golang/pkg/utils"
 	"time"
 	"unicode"
 
@@ -300,7 +300,7 @@ func resetpasswordHandler(c *gin.Context) {
 	_ = c.ShouldBind(&resetPasswordReq)
 	validate := validator.New()
 	validate.RegisterValidation("password-strength", ValidatePassword)
-	
+
 	if err := validate.Struct(resetPasswordReq); err != nil {
 		c.JSON(http.StatusOK, utils.NewValidatorError(err))
 		return
