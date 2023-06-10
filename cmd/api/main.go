@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"restfulAPI/Golang/config"
 	"restfulAPI/Golang/database"
-	User "restfulAPI/Golang/models"
+	User "restfulAPI/Golang/internal/models"
 	"restfulAPI/Golang/pkg/utils"
+	ValidatorHelper "restfulAPI/Golang/pkg/validators"
 	"time"
 	"unicode"
 
@@ -30,13 +32,21 @@ func main() {
 	sqlDB, _ := db.DB()
 	defer sqlDB.Close()
 
+	config, err := config.InitConfig()
+	if err != nil {
+		fmt.Printf("Error: %v when get Config", err)
+	}
+
 	router.POST("/login", loginHandler)
 	router.POST("/register", registerHandler)
 	router.POST("/refresh", refreshHandler)
 	router.POST("/forgot-password", forgotpasswordHander)
 	router.POST("/reset-password/", resetpasswordHandler)
 	router.GET("/protected", authMiddleware(), protectedHandler)
+
 	router.Run(":8080")
+	test := fmt.Sprintf("%T", config.Port)
+	fmt.Println(test + "========================================")
 }
 
 type LoginModel struct {
@@ -79,7 +89,7 @@ func registerHandler(c *gin.Context) {
 	validate := validator.New()
 	validate.RegisterValidation("password-strength", ValidatePassword)
 	if err := validate.Struct(userRegister); err != nil {
-		c.JSON(http.StatusOK, utils.NewValidatorError(err))
+		c.JSON(http.StatusOK, ValidatorHelper.NewValidatorError(err))
 		return
 	}
 	email := userRegister.Email
@@ -117,7 +127,7 @@ func loginHandler(c *gin.Context) {
 	// }
 	_ = c.ShouldBind(&loginBody)
 	if err := validate.Struct(loginBody); err != nil {
-		c.JSON(http.StatusOK, utils.NewValidatorError(err))
+		c.JSON(http.StatusOK, ValidatorHelper.NewValidatorError(err))
 		return
 	}
 	email := loginBody.Email
@@ -270,7 +280,7 @@ func forgotpasswordHander(c *gin.Context) {
 		"To reset password please click \r\n: " + "http://localhost:8080/reset-password/?email=" + email + "&token=" + resetPasswordToken
 	utils.SendMail(email, "Reset Password for Application", body)
 	User.UpdateOneByEmail(email, &User.User{ForgotPasswordToken: resetPasswordToken, ForgotPasswordExpire: "???"})
-	c.JSON(http.StatusBadRequest, gin.H{"error": "Sent Mail To Reset Password Success!"})
+	c.JSON(http.StatusBadRequest, gin.H{"success": "Sent Mail To Reset Password Success!"})
 }
 
 type ResetPasswordReq struct {
@@ -302,14 +312,14 @@ func resetpasswordHandler(c *gin.Context) {
 	validate.RegisterValidation("password-strength", ValidatePassword)
 
 	if err := validate.Struct(resetPasswordReq); err != nil {
-		c.JSON(http.StatusOK, utils.NewValidatorError(err))
+		c.JSON(http.StatusOK, ValidatorHelper.NewValidatorError(err))
 		return
 	}
 	newPassword := resetPasswordReq.NewPassword
 	hashedByte, _ := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
 
-	if _, err := User.UpdateOneByEmail(email, &User.User{Password: string(hashedByte)}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+	if _, err := User.UpdateOneByEmail(email, &User.User{Password: string(hashedByte), ForgotPasswordToken: "", ForgotPasswordExpire: ""}); err != nil {
+		c.JSON(http.StatusOK, gin.H{"error": err})
 	}
-	c.JSON(http.StatusOK, gin.H{"error": false, "messsage": "Reset password succesfully!"})
+	c.JSON(http.StatusOK, gin.H{"success": true, "messsage": "Reset password succesfully!"})
 }
