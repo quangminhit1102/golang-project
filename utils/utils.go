@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"crypto/rand"
 	"fmt"
 	"log"
 	"net/smtp"
@@ -10,6 +9,7 @@ import (
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 // {"database": {"hello":"no such table", error: "not_exists"}}
@@ -79,7 +79,15 @@ func SendMail(toEmail, subject, body string) {
 }
 
 func RandomTokenGenerator() string {
-	b := make([]byte, 4)
-	rand.Read(b)
-	return fmt.Sprintf("%x", b)
+	// This is not professional Way
+	// b := make([]byte, 4)
+	// rand.Read(b)
+	// return fmt.Sprintf("%x", b)
+
+	// Professional Way
+	ranUuid, err := uuid.NewRandom()
+	if err != nil {
+		return uuid.Nil.String()
+	}
+	return ranUuid.String()
 }

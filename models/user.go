@@ -8,7 +8,7 @@ import (
 )
 
 type User struct {
-	Id                   int    `gorm:"primary_key,autoIncrement"`
+	Id                   int    `gorm:"type:uuid primary_key"`
 	Email                string `gorm:"unique" json:"email" validate:"required,email"`
 	Password             string `json:"password" validate:"required,min=8,password-strength"`
 	Address              string
