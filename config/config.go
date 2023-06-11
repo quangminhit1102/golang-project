@@ -30,7 +30,14 @@ type Config struct {
 		Email    string `mapstructure:"email"`
 		Password string `mapstructure:"password"`
 	} `mapstructure:"email_credential"` // Email credential for Email Server
-
+	PostgresConfig struct {
+		Host     string
+		Port     string
+		DBName   string
+		User     string
+		Password string
+		TimeZone string
+	} `mapstructure:"postgres_config"`
 	// ======= Add more configs of structure configs ===========
 	// ==========================================================
 
