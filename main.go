@@ -2,6 +2,8 @@ package main
 
 import (
 	"restfulAPI/Golang/database"
+	"restfulAPI/Golang/handlers"
+	"restfulAPI/Golang/middlewares"
 	User "restfulAPI/Golang/models"
 
 	"github.com/gin-gonic/gin"
@@ -20,11 +22,11 @@ func main() {
 	sqlDB, _ := db.DB()
 	defer sqlDB.Close()
 
-	router.POST("/login", loginHandler)
-	router.POST("/register", registerHandler)
-	router.POST("/refresh", refreshHandler)
-	router.POST("/forgot-password", forgotpasswordHander)
-	router.POST("/reset-password/", resetpasswordHandler)
-	router.GET("/protected", authMiddleware(), protectedHandler)
+	router.POST("/login", handlers.LoginHandler)
+	router.POST("/register", handlers.RegisterHandler)
+	router.POST("/refresh", handlers.RefreshHandler)
+	router.POST("/forgot-password", handlers.ForgotpasswordHander)
+	router.POST("/reset-password/", handlers.ResetpasswordHandler)
+	router.GET("/protected", middlewares.AuthMiddleware(), handlers.ProtectedHandler)
 	router.Run(":8080")
 }

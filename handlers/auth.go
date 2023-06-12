@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	User "restfulAPI/Golang/models"
 	"restfulAPI/Golang/utils"
 	"time"
 
@@ -14,17 +15,19 @@ import (
 	"gorm.io/gorm"
 )
 
+var secret = "your-secret-key"
+
 type LoginModel struct {
 	//https://pkg.go.dev/github.com/go-playground/validator#hdr-Baked_In_Validators_and_Tags |GIN VALIDATOR TAG|
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,password-strength"`
 }
 
-func registerHandler(c *gin.Context) {
+func RegisterHandler(c *gin.Context) {
 	userRegister := &User.User{}
 	_ = c.ShouldBind(&userRegister)
 	validate := validator.New()
-	validate.RegisterValidation("password-strength", ValidatePassword)
+	validate.RegisterValidation("password-strength", utils.ValidatePassword)
 	if err := validate.Struct(userRegister); err != nil {
 		c.JSON(http.StatusOK, utils.NewValidatorError(err))
 		return
@@ -47,12 +50,12 @@ func registerHandler(c *gin.Context) {
 	}
 
 }
-func loginHandler(c *gin.Context) {
+func LoginHandler(c *gin.Context) {
 	var loginBody LoginModel
 	c.Writer.Header().Set("Content-Type", "application/json")
 
 	validate := validator.New()
-	validate.RegisterValidation("password-strength", ValidatePassword)
+	validate.RegisterValidation("password-strength", utils.ValidatePassword)
 
 	// To Get From |Query| USING: c.DefaultQuery("<name>","<Default Value>")
 	// To Get From |Param| USING: c.Param("name")
@@ -106,7 +109,7 @@ func loginHandler(c *gin.Context) {
 
 }
 
-func refreshHandler(c *gin.Context) {
+func RefreshHandler(c *gin.Context) {
 	tokenString := c.PostForm("refresh_token")
 
 	// Validate the refresh token
@@ -130,7 +133,7 @@ func refreshHandler(c *gin.Context) {
 	username := claims["username"].(string)
 
 	// Generate a new access token
-	accessToken, err := generateAccessToken(username)
+	accessToken, err := GenerateAccessToken(username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
 		return
@@ -139,7 +142,7 @@ func refreshHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"access_token": accessToken})
 }
 
-func generateAccessToken(username string) (string, error) {
+func GenerateAccessToken(username string) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["username"] = username
@@ -153,45 +156,12 @@ func generateAccessToken(username string) (string, error) {
 	return accessToken, nil
 }
 
-func authMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
-		}
-
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method")
-			}
-			return []byte(secret), nil
-		})
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
-
-		c.Set("username", claims["username"])
-		c.Next()
-	}
-}
-
-func protectedHandler(c *gin.Context) {
+func ProtectedHandler(c *gin.Context) {
 	username, _ := c.Get("username")
 	c.JSON(http.StatusOK, gin.H{"message": "Protected endpoint", "username": username})
 }
 
-func forgotpasswordHander(c *gin.Context) {
+func ForgotpasswordHander(c *gin.Context) {
 	var jsonMap map[string]interface{}
 	if err := c.ShouldBindJSON(&jsonMap); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
@@ -225,7 +195,7 @@ type ResetPasswordReq struct {
 	ConfirmPassword string `json:"confirmPassword" field:"Confirm Password" validate:"required,min=8,password-strength,eqcsfield=NewPassword"`
 }
 
-func resetpasswordHandler(c *gin.Context) {
+func ResetpasswordHandler(c *gin.Context) {
 	email := c.DefaultQuery("email", "")
 	resetToken := c.DefaultQuery("token", "")
 	if email == "" || resetToken == "" {
@@ -246,7 +216,7 @@ func resetpasswordHandler(c *gin.Context) {
 	resetPasswordReq := &ResetPasswordReq{}
 	_ = c.ShouldBind(&resetPasswordReq)
 	validate := validator.New()
-	validate.RegisterValidation("password-strength", ValidatePassword)
+	validate.RegisterValidation("password-strength", utils.ValidatePassword)
 
 	if err := validate.Struct(resetPasswordReq); err != nil {
 		c.JSON(http.StatusOK, utils.NewValidatorError(err))
