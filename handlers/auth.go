@@ -57,9 +57,9 @@ func LoginHandler(c *gin.Context) {
 	validate := validator.New()
 	validate.RegisterValidation("password-strength", utils.ValidatePassword)
 
-	// To Get From |Query| USING: c.DefaultQuery("<name>","<Default Value>")
-	// To Get From |Param| USING: c.Param("name")
-	// To Get From |JSON | USING: Bellow Code :)
+	// To Get From |Query| USING: c.DefaultQuery("<name>","<Default Value>") ===================
+	// To Get From |Param| USING: c.Param("name") ==============================================
+	// To Get From |JSON | USING: Bellow Code :) ===============================================
 
 	// if err := c.BindJSON(&loginBody); err != nil {
 	// 	c.JSON(http.StatusOK, gin.H{"error": err.Error()})
@@ -133,27 +133,13 @@ func RefreshHandler(c *gin.Context) {
 	username := claims["username"].(string)
 
 	// Generate a new access token
-	accessToken, err := GenerateAccessToken(username)
+	accessToken, err := utils.GenerateAccessToken(username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"access_token": accessToken})
-}
-
-func GenerateAccessToken(username string) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
-	claims["username"] = username
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires in 24 hours
-
-	accessToken, err := token.SignedString([]byte(secret))
-	if err != nil {
-		return "", err
-	}
-
-	return accessToken, nil
 }
 
 func ProtectedHandler(c *gin.Context) {
@@ -187,7 +173,7 @@ func ForgotpasswordHander(c *gin.Context) {
 		"To reset password please click \r\n: " + "http://localhost:8080/reset-password/?email=" + email + "&token=" + resetPasswordToken
 	utils.SendMail(email, "Reset Password for Application", body)
 	User.UpdateOneByEmail(email, &User.User{ForgotPasswordToken: resetPasswordToken, ForgotPasswordExpire: "???"})
-	c.JSON(http.StatusBadRequest, gin.H{"error": "Sent Mail To Reset Password Success!"})
+	c.JSON(http.StatusOK, gin.H{"message": "Sent Mail To Reset Password Success!"})
 }
 
 type ResetPasswordReq struct {
