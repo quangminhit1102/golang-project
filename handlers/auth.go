@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"restfulAPI/Golang/config"
 	User "restfulAPI/Golang/models"
 	"restfulAPI/Golang/utils"
 	"time"
@@ -15,47 +16,52 @@ import (
 	"gorm.io/gorm"
 )
 
-var secret = "your-secret-key"
-
 type LoginModel struct {
 	//https://pkg.go.dev/github.com/go-playground/validator#hdr-Baked_In_Validators_and_Tags |GIN VALIDATOR TAG|
 	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8,password-strength"`
+	Password string `json:"password" validate:"required"`
 }
 
 func RegisterHandler(c *gin.Context) {
+	// New Model
 	userRegister := &User.User{}
+	// Bind Model
 	_ = c.ShouldBind(&userRegister)
+	// Validate
 	validate := validator.New()
 	validate.RegisterValidation("password-strength", utils.ValidatePassword)
 	if err := validate.Struct(userRegister); err != nil {
 		c.JSON(http.StatusOK, utils.NewValidatorError(err))
 		return
 	}
+
 	email := userRegister.Email
 	password := userRegister.Password
-
 	_, err := User.FindOneByEmail(email)
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		// handle record not found
-		c.JSON(http.StatusOK, gin.H{"error": true, "message": "Email Already exists!"})
+		// Handle record not found
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "Email Already exists!"})
 		return
 	}
 	hashedByte, _ := bcrypt.GenerateFromPassword([]byte(password), 12)
 	_, error := User.SaveUser(&User.User{Email: email, Password: string(hashedByte)})
 	if error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Internal Server Error!"})
 	} else {
-		c.JSON(http.StatusCreated, gin.H{"error": false, "message": "registed User Successfully!"})
+		c.JSON(http.StatusCreated, gin.H{"success": true, "message": "Registered User Successfully!"})
 	}
-
 }
 func LoginHandler(c *gin.Context) {
-	var loginBody LoginModel
 	c.Writer.Header().Set("Content-Type", "application/json")
+	// Init config
+	config, err := config.InitConfig()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error!"})
+	}
+	var loginBody LoginModel // New Login Model
 
+	// Validator
 	validate := validator.New()
-	validate.RegisterValidation("password-strength", utils.ValidatePassword)
 
 	// To Get From |Query| USING: c.DefaultQuery("<name>","<Default Value>") ===================
 	// To Get From |Param| USING: c.Param("name") ==============================================
@@ -65,7 +71,8 @@ func LoginHandler(c *gin.Context) {
 	// 	c.JSON(http.StatusOK, gin.H{"error": err.Error()})
 	// 	return
 	// }
-	_ = c.ShouldBind(&loginBody)
+	_ = c.ShouldBind(&loginBody) // Bind Model
+	// Validate
 	if err := validate.Struct(loginBody); err != nil {
 		c.JSON(http.StatusOK, utils.NewValidatorError(err))
 		return
@@ -96,7 +103,7 @@ func LoginHandler(c *gin.Context) {
 		claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires in 24 hours
 
 		// Sign the token with the secret key
-		tokenString, err := token.SignedString([]byte(secret))
+		tokenString, err := token.SignedString([]byte(config.ServerConfig.JwtSecretKey))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 			return
@@ -106,10 +113,13 @@ func LoginHandler(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, gin.H{"error": true, "message": "Email or Password are invalid!"})
 	}
-
 }
 
 func RefreshHandler(c *gin.Context) {
+	config, err := config.InitConfig()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error!"})
+	}
 	tokenString := c.PostForm("refresh_token")
 
 	// Validate the refresh token
@@ -117,7 +127,7 @@ func RefreshHandler(c *gin.Context) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		return []byte(secret), nil
+		return []byte(config.ServerConfig.JwtSecretKey), nil
 	})
 	if err != nil || !token.Valid {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
@@ -212,7 +222,15 @@ func ResetpasswordHandler(c *gin.Context) {
 	hashedByte, _ := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
 
 	if _, err := User.UpdateOneByEmail(email, &User.User{Password: string(hashedByte)}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
 	}
-	c.JSON(http.StatusOK, gin.H{"error": false, "messsage": "Reset password succesfully!"})
+	// c.JSON(http.StatusOK, gin.H{"success": true, "message": "Reset password successfully!"})
+	ResponseHandler(c, true, "Reset password successfully!", http.StatusOK)
+}
+
+func ResponseHandler(c *gin.Context, success bool, message string, statusCode int) {
+	if statusCode == 0 {
+		statusCode = http.StatusOK
+	}
+	c.JSON(statusCode, gin.H{"error": success, "message": message})
 }

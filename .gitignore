@@ -1,1 +1,26 @@
 config.yaml
+
+# dependencies
+/node_modules
+/bower_components
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+*.launch
+.settings/
+
+
+#System Files
+.DS_Store
+Thumbs.db
+
+vendor/*
+!vendor/vendor.json
+
+tmp/*
+gorm.db
+coverage.txt
+
+bak.*
