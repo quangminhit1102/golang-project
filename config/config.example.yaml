@@ -9,4 +9,3 @@ postgres_config:
   port: 5432
   user: postgres
   password: 123456
-jwt-secret: "anotherstringpassword"

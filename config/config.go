@@ -21,6 +21,7 @@ type Config struct {
 		CtxDefaultTimeout time.Duration
 		CSRF              bool
 		Debug             bool
+		AccessTokenMaxAge int
 	} // Server config
 
 	Port             string `mapstructure:"port"`              // Port number
@@ -52,7 +53,7 @@ func InitConfig() (*Config, error) {
 	// import "os"
 	// apiKey := os.Getenv("API_KEY")
 
-	//=============== USING FLAG ==========================
+	//=============== USING FLAG - default Approach by Golang==========================
 	// import "flag"
 	// apiKey := flag.String("<Env Name>", "<Defaut Value>", "Usage")
 	// flag.Parse()

@@ -7,6 +7,7 @@ import (
 	"restfulAPI/Golang/config"
 	User "restfulAPI/Golang/models"
 	"restfulAPI/Golang/utils"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,11 @@ type LoginModel struct {
 	//https://pkg.go.dev/github.com/go-playground/validator#hdr-Baked_In_Validators_and_Tags |GIN VALIDATOR TAG|
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
+}
+
+type ResetPasswordReq struct {
+	NewPassword     string `json:"newPassword" field:"New Password" validate:"required,min=8,password-strength"`
+	ConfirmPassword string `json:"confirmPassword" field:"Confirm Password" validate:"required,min=8,password-strength,eqcsfield=NewPassword"`
 }
 
 func RegisterHandler(c *gin.Context) {
@@ -97,30 +103,61 @@ func LoginHandler(c *gin.Context) {
 	// Check Password
 	if user != nil && errorCompare == nil {
 		// Create the token
-		token := jwt.New(jwt.SigningMethodHS256)
-		claims := token.Claims.(jwt.MapClaims)
-		claims["username"] = email
-		claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires in 24 hours
-
-		// Sign the token with the secret key
-		tokenString, err := token.SignedString([]byte(config.ServerConfig.JwtSecretKey))
+		tokenString, err := utils.GenerateAccessToken(email, int64(time.Minute))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 			return
 		}
+		// Create Refresh Token
+		refresh_token, err := utils.GenerateAccessToken(email, int64(time.Hour*24))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
+			return
+		}
 
-		c.JSON(http.StatusOK, gin.H{"error": false, "message": "Authentication Successfully!", "token": tokenString})
+		_, saveUserErr := User.UpdateOneByEmail(email, &User.User{Token: tokenString, RefreshToken: refresh_token})
+		if saveUserErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error!"})
+			return
+		}
+
+		c.SetCookie("token", tokenString, config.ServerConfig.AccessTokenMaxAge*2, "/", "localhost", false, true)
+		c.SetCookie("refresh_token", refresh_token, config.ServerConfig.AccessTokenMaxAge*96, "/", "localhost", false, true)
+		c.SetCookie("logged_in", "true", config.ServerConfig.AccessTokenMaxAge*2, "/", "localhost", false, false)
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Authentication Successfully!", "token": tokenString})
 	} else {
-		c.JSON(http.StatusOK, gin.H{"error": true, "message": "Email or Password are invalid!"})
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "Email or Password are invalid!"})
 	}
 }
 
 func RefreshHandler(c *gin.Context) {
+	// Init Config
 	config, err := config.InitConfig()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error!"})
 	}
-	tokenString := c.PostForm("refresh_token")
+	// Binding Refresh Token
+	var jsonMap map[string]interface{}
+	if err := c.ShouldBindJSON(&jsonMap); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request!"})
+		return
+	}
+	// Find User By Refresh Token
+
+	// Access the specific field
+	tokenString, ok := jsonMap["tokenString"].(string)
+	if strings.Trim(tokenString, " ") == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token is required!"})
+		return
+	}
+
+	// Find User By refresh Token
+	user, err := User.FindOneByCondition(&User.User{RefreshToken: tokenString})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid refresh Token!"})
+		return
+	}
 
 	// Validate the refresh token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -130,7 +167,7 @@ func RefreshHandler(c *gin.Context) {
 		return []byte(config.ServerConfig.JwtSecretKey), nil
 	})
 	if err != nil || !token.Valid {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid refresh Token!"})
 		return
 	}
 
@@ -140,16 +177,25 @@ func RefreshHandler(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
 		return
 	}
-	username := claims["username"].(string)
+	email := claims["username"].(string)
 
 	// Generate a new access token
-	accessToken, err := utils.GenerateAccessToken(username)
+	accessToken, err := utils.GenerateAccessToken(email, int64(time.Minute))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
 		return
 	}
+	// Generate a new refresh token
+	refreshToken, err := utils.GenerateAccessToken(email, int64(time.Hour*24))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
+		return
+	}
+	// Update User
+	User.UpdateOneByEmail(user.Email, User.User{RefreshToken: refreshToken, Token: accessToken})
 
-	c.JSON(http.StatusOK, gin.H{"access_token": accessToken})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Re-create Token successfully!", "token": accessToken, "refresh_token": refreshToken})
+	return
 }
 
 func ProtectedHandler(c *gin.Context) {
@@ -182,15 +228,9 @@ func ForgotpasswordHander(c *gin.Context) {
 		"\r\n" +
 		"To reset password please click \r\n: " + "http://localhost:8080/reset-password/?email=" + email + "&token=" + resetPasswordToken
 	utils.SendMail(email, "Reset Password for Application", body)
-	User.UpdateOneByEmail(email, &User.User{ForgotPasswordToken: resetPasswordToken, ForgotPasswordExpire: "???"})
+	User.UpdateOneByEmail(email, &User.User{ForgotPasswordToken: resetPasswordToken, ForgotPasswordExpire: time.Now().Format("2006-01-02 15:04:05")})
 	c.JSON(http.StatusOK, gin.H{"message": "Sent Mail To Reset Password Success!"})
 }
-
-type ResetPasswordReq struct {
-	NewPassword     string `json:"newPassword" field:"New Password" validate:"required,min=8,password-strength"`
-	ConfirmPassword string `json:"confirmPassword" field:"Confirm Password" validate:"required,min=8,password-strength,eqcsfield=NewPassword"`
-}
-
 func ResetpasswordHandler(c *gin.Context) {
 	email := c.DefaultQuery("email", "")
 	resetToken := c.DefaultQuery("token", "")
@@ -224,6 +264,8 @@ func ResetpasswordHandler(c *gin.Context) {
 	if _, err := User.UpdateOneByEmail(email, &User.User{Password: string(hashedByte)}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
 	}
+
+	User.UpdateOneByEmail(email, User.User{ForgotPasswordToken: "", ForgotPasswordExpire: ""})
 	// c.JSON(http.StatusOK, gin.H{"success": true, "message": "Reset password successfully!"})
 	ResponseHandler(c, true, "Reset password successfully!", http.StatusOK)
 }

@@ -9,7 +9,7 @@ import (
 
 var secret = "your-secret-key"
 
-func GenerateAccessToken(username string) (string, error) {
+func GenerateAccessToken(username string, duration int64) (string, error) {
 	config, err := config.InitConfig()
 	if err != nil {
 		return "", err
@@ -17,7 +17,7 @@ func GenerateAccessToken(username string) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["username"] = username
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires in 24 hours
+	claims["exp"] = time.Now().Add(time.Duration(duration)).Unix() // Token expires in 24 hours
 
 	accessToken, err := token.SignedString([]byte(config.ServerConfig.JwtSecretKey))
 	if err != nil {
