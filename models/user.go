@@ -48,7 +48,7 @@ func UpdateOneByEmail(email string, updateField interface{}) (*User, error) {
 }
 
 // Golang Ignore Update The field that have nil, 0 Value
-// Cmn mất cả buổi trời detech
+// Cmn mất cả buổi trời detect
 func UpdateOneWithMap(email string, updateField map[string]interface{}) (*User, error) {
 	db := database.GetDB()
 	user, err := FindOneByEmail(email)
