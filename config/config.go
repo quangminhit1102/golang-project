@@ -9,19 +9,19 @@ import (
 
 type Config struct {
 	ServerConfig struct {
-		AppVersion        string
-		Port              string
-		PprofPort         string
-		Mode              string
-		JwtSecretKey      string
-		CookieName        string
-		ReadTimeout       time.Duration
-		WriteTimeout      time.Duration
-		SSL               bool
-		CtxDefaultTimeout time.Duration
-		CSRF              bool
-		Debug             bool
-		AccessTokenMaxAge int
+		AppVersion         string
+		Port               string
+		Mode               string
+		JwtSecretKey       string
+		CookieName         string
+		ReadTimeout        time.Duration
+		WriteTimeout       time.Duration
+		SSL                bool
+		CtxDefaultTimeout  time.Duration
+		CSRF               bool
+		Debug              bool
+		AccessTokenMaxAge  int
+		RefreshTokenMaxAge int
 	} // Server config
 
 	Port             string `mapstructure:"port"`              // Port number

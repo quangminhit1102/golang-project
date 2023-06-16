@@ -46,3 +46,15 @@ func UpdateOneByEmail(email string, updateField interface{}) (*User, error) {
 	error := db.Model(user).Updates(updateField).Error
 	return user, error
 }
+
+// Golang Ignore Update The field that have nil, 0 Value
+// Cmn mất cả buổi trời detech
+func UpdateOneWithMap(email string, updateField map[string]interface{}) (*User, error) {
+	db := database.GetDB()
+	user, err := FindOneByEmail(email)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return &User{}, err
+	}
+	error := db.Model(user).Updates(updateField).Error
+	return user, error
+}
