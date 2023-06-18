@@ -6,6 +6,7 @@ import (
 	"restfulAPI/Golang/handlers"
 	"restfulAPI/Golang/middlewares"
 
+	Product "restfulAPI/Golang/models"
 	User "restfulAPI/Golang/models"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,7 @@ var router = gin.Default()
 
 func Migrate(db *gorm.DB) {
 	db.AutoMigrate(&User.User{})
+	db.AutoMigrate(&Product.Product{})
 }
 
 func main() {

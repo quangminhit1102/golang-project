@@ -3,19 +3,23 @@ package models
 import (
 	"errors"
 	"restfulAPI/Golang/database"
+	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type User struct {
-	Id                   int    `gorm:"type:uuid primary_key"`
-	Email                string `gorm:"unique" json:"email" validate:"required,email"`
-	Password             string `json:"password" validate:"required,min=8,password-strength"`
+	Id                   uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primary_key"`
+	Email                string    `gorm:"unique,Index" json:"email" validate:"required,email"`
+	Password             string    `json:"password" validate:"required,min=8,password-strength"`
 	Address              string
 	Token                string
 	RefreshToken         string
 	ForgotPasswordToken  string
 	ForgotPasswordExpire string
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
 }
 
 func FindOneByEmail(email string) (*User, error) {
@@ -32,7 +36,7 @@ func FindOneByCondition(condition interface{}) (*User, error) {
 	return user, error
 }
 
-func SaveUser(user *User) (int, error) {
+func SaveUser(user *User) (uuid.UUID, error) {
 	db := database.GetDB()
 	error := db.Create(user).Error
 	return user.Id, error
