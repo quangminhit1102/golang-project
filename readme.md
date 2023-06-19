@@ -14,24 +14,21 @@
 
 ## Product Routers
 
-::: mermaid
+ ``` mermaid
 sequenceDiagram
-Christie->>Josh: Hello Josh, how are you?
-Josh-->>Christie: Great!
-Christie->>Josh: See you later!
-:::
-
-::: mermaid
-gantt
-title A Gantt chart
-dateFormat YYYY-MM-DD
-excludes 2022-03-16,2022-03-18,2022-03-19
-section Section
-
-    A task          :a1, 2022-03-07, 7d
-    Another task    :after a1 , 5d
-
-:::
+    box Purple Alice & John
+    participant A
+    participant J
+    end
+    box Another Group
+    participant B
+    participant C
+    end
+    A->>J: Hello John, how are you?
+    J->>A: Great!
+    A->>B: Hello Bob, how is Charly ?
+    B->>C: Hello Charly, how are you?
+```
 
 ```
 //                       _oo0oo_
