@@ -3,8 +3,7 @@ package main
 import (
 	"restfulAPI/Golang/config"
 	"restfulAPI/Golang/database"
-	"restfulAPI/Golang/handlers"
-	"restfulAPI/Golang/middlewares"
+	"restfulAPI/Golang/routers"
 
 	Product "restfulAPI/Golang/models"
 	User "restfulAPI/Golang/models"
@@ -13,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var router = gin.Default()
+var server = gin.Default()
 
 // var validate *validator.Validate
 
@@ -35,11 +34,10 @@ func main() {
 		return
 	}
 
-	router.POST("/login", handlers.LoginHandler)
-	router.POST("/register", handlers.RegisterHandler)
-	router.POST("/refresh", handlers.RefreshHandler)
-	router.POST("/forgot-password", handlers.ForgotpasswordHander)
-	router.POST("/reset-password/", handlers.ResetpasswordHandler)
-	router.GET("/protected", middlewares.AuthMiddleware(), handlers.ProtectedHandler)
-	router.Run(":" + config.ServerConfig.Port)
+	// Router Init
+	router := routers.Router{Server: server, Db: db}
+	router.Init()
+
+
+	server.Run(":" + config.ServerConfig.Port)
 }

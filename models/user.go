@@ -20,6 +20,7 @@ type User struct {
 	ForgotPasswordExpire string
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
+	Products             []Product
 }
 
 func FindOneByEmail(email string) (*User, error) {
