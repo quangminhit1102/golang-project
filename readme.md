@@ -1,5 +1,3 @@
-[[_TOC_]]
-
 ### GET START
 
 ### Golang
@@ -10,9 +8,9 @@
 
 ### API EndPoint
 
-#### Authentication Routers
+#### &nbsp;&nbsp;&nbsp;&nbsp;Authentication Routers
 
-#### Product Routers
+#### &nbsp;&nbsp;&nbsp;&nbsp;Product Routers
 
  ``` mermaid
 sequenceDiagram
