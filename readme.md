@@ -1,18 +1,18 @@
 [[_TOC_]]
 
-# GET START
+### GET START
 
-# Golang
+### Golang
 
-# Gin Framework
+### Gin Framework
 
-# Authentication|Authorization with JWT
+### Authentication|Authorization with JWT
 
-# API EndPoint
+### API EndPoint
 
-## Authentication Routers
+#### Authentication Routers
 
-## Product Routers
+#### Product Routers
 
  ``` mermaid
 sequenceDiagram
