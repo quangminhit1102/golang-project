@@ -1,37 +1,101 @@
-[[_TOC_]]
+- [Get Start](#get-start)
+- [Golang Language](#golang-language)
+- [JWT Authentication, Authorization](#jwt-authentication-authorization)
+- [Gin Framework](#gin-framework)
+- [End-Point Routers](#end-point-routers)
+  - [Auth Endpoint](#1)
+    - [[POST] Login](#hello)
+    - [[POST] Register](#hello)
+    - [[POST] Forgot Password](#hello)
+    - [[POST] Reset Password](#hello)
+    - [[POST] Refresh Token](#hello)
+  - [Product Endpoint](#2)
+    - [[GET] Get list Products](#hello)
+    - [[GET] Get Detail Product By ID](#hello)
+    - [[POST] Create Product](#hello)
+    - [[PUT] Edit Product](#hello)
+    - [[DELETE] Delete Product](#hello)
 
-# GET START
+### **Get Start**
 
-# Golang
+REST API, GOLANG, Gin, PostGresDB, Validator-v10, Viber config...
 
-# Gin Framework
+### **Golang Language**
 
-# Authentication|Authorization with JWT
+Go is a popular language for good reason. It offers similar performance to other “low-level” programming languages such as Java and C++, but it’s also incredibly simple, which makes the development experience delightful.
 
-# API EndPoint
+### **Gin Framework**
 
-## Authentication Routers
+The Gin framework is lightweight, well-documented, and, of course, extremely fast.
+Unlike other Go web frameworks, Gin uses a custom version of HttpRouter, which means it can navigate through your API routes faster than most frameworks out there. The creators also claim it can run 40 times faster than Martini, a relatively similar framework to Gin. You can see a more detailed comparison in this benchmark.
 
-## Product Routers
+### **JWT Authentication, Authorization**
 
 ::: mermaid
 sequenceDiagram
-Christie->>Josh: Hello Josh, how are you?
-Josh-->>Christie: Great!
-Christie->>Josh: See you later!
+
+---
+
+## title: JWT Login
+
+    autonumber
+    actor User
+    participant Auth Server
+    User->>Auth Server: POST /auth/login<br/>body {username, password}
+    activate  Auth Server
+    Auth Server->>Auth Server: Validate user Input
+    Auth Server->>Auth Server: Generate Token, Refresh Token
+    Auth Server->>Auth Server: Set Cookie
+    Auth Server-->>User: Return Access Token, Refresh Token
+    deactivate Auth Server
+
 :::
 
 ::: mermaid
-gantt
-title A Gantt chart
-dateFormat YYYY-MM-DD
-excludes 2022-03-16,2022-03-18,2022-03-19
-section Section
+sequenceDiagram
 
-    A task          :a1, 2022-03-07, 7d
-    Another task    :after a1 , 5d
+---
+
+## title: Auth
+
+    autonumber
+    actor User
+    participant Auth Server
+    User->>Auth Server: Get /product/get-all<br/>Headers: Bear Access Token
+    activate  Auth Server
+    Auth Server->>Auth Server: Check valid Token
+    opt
+    Auth Server->>Auth Server: Check User Role
+    end
+    Auth Server-->>User: Return list products
+    deactivate Auth Server
 
 :::
+::: mermaid
+sequenceDiagram
+
+---
+
+## title: JWT Refresh Token
+
+    autonumber
+    actor Client
+    participant Auth Server
+    Client ->> Auth Server: POST: /auth/refresh <br/> body{refreshToken}
+    Auth Server ->> Auth Server: Check Refresh Token Exists
+    Auth Server ->> Auth Server: Check Refresh Token expiration
+    opt
+    Auth Server ->> Auth Server: Generate Token, Refresh Token
+    end
+    Auth Server ->> Client: Return New Access Token, New Refresh Token
+
+:::
+
+### **End-Point Routers**
+
+#### **Auth Endpoint**
+
+#### **Product Endpoint**
 
 ```
 //                       _oo0oo_
