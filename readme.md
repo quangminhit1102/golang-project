@@ -3,41 +3,31 @@
 - [JWT Authentication, Authorization](#jwt-authentication-authorization)
 - [Gin Framework](#gin-framework)
 - [End-Point Routers](#end-point-routers)
-  - [Auth Endpoint](#1)
-    - [[POST] Login](#hello)
-    - [[POST] Register](#hello)
-    - [[POST] Forgot Password](#hello)
-    - [[POST] Reset Password](#hello)
-    - [[POST] Refresh Token](#hello)
-  - [Product Endpoint](#2)
-    - [[GET] Get list Products](#hello)
-    - [[GET] Get Detail Product By ID](#hello)
-    - [[POST] Create Product](#hello)
-    - [[PUT] Edit Product](#hello)
-    - [[DELETE] Delete Product](#hello)
-
+    * [Auth Endpoint](#1)
+        + [[POST] Login](#hello)
+        + [[POST] Register](#hello)
+        + [[POST] Forgot Password](#hello)
+        + [[POST] Reset Password](#hello)
+        + [[POST] Refresh Token](#hello)
+    * [Product Endpoint](#2)
+        + [[GET] Get list Products](#hello)
+        + [[GET] Get Detail Product By ID](#hello)
+        + [[POST] Create Product](#hello)
+        + [[PUT] Edit Product](#hello)
+        + [[DELETE] Delete Product](#hello)
 ### **Get Start**
-
 REST API, GOLANG, Gin, PostGresDB, Validator-v10, Viber config...
-
 ### **Golang Language**
-
-Go is a popular language for good reason. It offers similar performance to other “low-level” programming languages such as Java and C++, but it’s also incredibly simple, which makes the development experience delightful.
-
+Go is a popular language for good reason. It offers similar performance to other “low-level” programming languages such as Java and C++, but it’s also incredibly simple, which makes the development experience delightful. 
 ### **Gin Framework**
-
 The Gin framework is lightweight, well-documented, and, of course, extremely fast.
 Unlike other Go web frameworks, Gin uses a custom version of HttpRouter, which means it can navigate through your API routes faster than most frameworks out there. The creators also claim it can run 40 times faster than Martini, a relatively similar framework to Gin. You can see a more detailed comparison in this benchmark.
-
 ### **JWT Authentication, Authorization**
-
 ::: mermaid
 sequenceDiagram
-
 ---
-
-## title: JWT Login
-
+title: JWT Login
+---
     autonumber
     actor User
     participant Auth Server
@@ -48,16 +38,13 @@ sequenceDiagram
     Auth Server->>Auth Server: Set Cookie
     Auth Server-->>User: Return Access Token, Refresh Token
     deactivate Auth Server
-
 :::
 
 ::: mermaid
 sequenceDiagram
-
 ---
-
-## title: Auth
-
+title: Auth
+---
     autonumber
     actor User
     participant Auth Server
@@ -69,15 +56,12 @@ sequenceDiagram
     end
     Auth Server-->>User: Return list products
     deactivate Auth Server
-
 :::
 ::: mermaid
 sequenceDiagram
-
 ---
-
-## title: JWT Refresh Token
-
+title: JWT Refresh Token
+---
     autonumber
     actor Client
     participant Auth Server
@@ -88,13 +72,9 @@ sequenceDiagram
     Auth Server ->> Auth Server: Generate Token, Refresh Token
     end
     Auth Server ->> Client: Return New Access Token, New Refresh Token
-
 :::
-
 ### **End-Point Routers**
-
 #### **Auth Endpoint**
-
 #### **Product Endpoint**
 
 ```
