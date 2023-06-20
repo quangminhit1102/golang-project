@@ -1,7 +1,7 @@
 package routers
 
 import (
-	"net/http"
+	productHandler "restfulAPI/Golang/handlers/products"
 
 	"github.com/gin-gonic/gin"
 )
@@ -9,16 +9,9 @@ import (
 func (r *Router) AddProductRouter(apiRouter *gin.RouterGroup) {
 	productRouter := apiRouter.Group("product")
 
-	productRouter.GET("/get-all", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"success": "Get All"})
-	})
-	productRouter.POST("/add", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"success": "Add Product"})
-	})
-	productRouter.PUT("/:id", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"success": "Update Product"})
-	})
-	productRouter.DELETE("/:id", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"success": "Delete Product"})
-	})
+	productRouter.GET("/get-all", productHandler.GetAllProduct)
+	productRouter.GET("/:id", productHandler.ProductDetail)
+	productRouter.POST("/add", productHandler.CreateProduct)
+	productRouter.PUT("/:id", productHandler.UpdateProduct)
+	productRouter.DELETE("/:id", productHandler.DeleteProduct)
 }

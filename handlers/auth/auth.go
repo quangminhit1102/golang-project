@@ -17,46 +17,28 @@ import (
 	"gorm.io/gorm"
 )
 
-type LoginModel struct {
-	//https://pkg.go.dev/github.com/go-playground/validator#hdr-Baked_In_Validators_and_Tags |GIN VALIDATOR TAG|
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
-}
+// Login Req | Res Struct
+type (
+	LoginRequest struct {
+		//https://pkg.go.dev/github.com/go-playground/validator#hdr-Baked_In_Validators_and_Tags |GIN VALIDATOR TAG|
+		Email    string `json:"email" validate:"required,email"`
+		Password string `json:"password" validate:"required"`
+	}
+	LoginResponse struct {
+		success       bool
+		message       string
+		token         string
+		refresh_token string
+	}
+)
 
-type ResetPasswordReq struct {
+// Reset Password
+type ResetPasswordRequest struct {
 	NewPassword     string `json:"newPassword" field:"New Password" validate:"required,min=8,password-strength"`
 	ConfirmPassword string `json:"confirmPassword" field:"Confirm Password" validate:"required,min=8,password-strength,eqcsfield=NewPassword"`
 }
 
-func RegisterHandler(c *gin.Context) {
-	// New Model
-	userRegister := &User.User{}
-	// Bind Model
-	_ = c.ShouldBind(&userRegister)
-	// Validate
-	validate := validator.New()
-	validate.RegisterValidation("password-strength", utils.ValidatePassword)
-	if err := validate.Struct(userRegister); err != nil {
-		c.JSON(http.StatusOK, utils.NewValidatorError(err))
-		return
-	}
-
-	email := userRegister.Email
-	password := userRegister.Password
-	_, err := User.FindOneByEmail(email)
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		// Handle record not found
-		c.JSON(http.StatusOK, gin.H{"success": false, "message": "Email Already exists!"})
-		return
-	}
-	hashedByte, _ := bcrypt.GenerateFromPassword([]byte(password), 12)
-	_, error := User.SaveUser(&User.User{Email: email, Password: string(hashedByte)})
-	if error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Internal Server Error!"})
-	} else {
-		c.JSON(http.StatusCreated, gin.H{"success": true, "message": "Registered User Successfully!"})
-	}
-}
+// Login
 func LoginHandler(c *gin.Context) {
 	c.Writer.Header().Set("Content-Type", "application/json")
 	// Init config
@@ -64,7 +46,7 @@ func LoginHandler(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error!"})
 	}
-	var loginBody LoginModel // New Login Model
+	var loginBody LoginRequest // New Login Model
 
 	// Validator
 	validate := validator.New()
@@ -125,9 +107,41 @@ func LoginHandler(c *gin.Context) {
 		c.SetCookie("refresh_token", refresh_token, config.ServerConfig.RefreshTokenMaxAge, "/", "localhost", false, true)
 		c.SetCookie("logged_in", "true", config.ServerConfig.AccessTokenMaxAge, "/", "localhost", false, false)
 
-		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Authentication Successfully!", "token": tokenString, "refresh_token": refresh_token})
+		c.JSON(http.StatusOK, &LoginResponse{success: true, message: "Authentication Successfully!", token: tokenString, refresh_token: refresh_token})
+		// c.JSON(http.StatusOK, gin.H{"success": true, "message": "Authentication Successfully!", "token": tokenString, "refresh_token": refresh_token})
 	} else {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "Email or Password are invalid!"})
+	}
+}
+
+// Register
+func RegisterHandler(c *gin.Context) {
+	// New Model
+	userRegister := &User.User{}
+	// Bind Model
+	_ = c.ShouldBind(&userRegister)
+	// Validate
+	validate := validator.New()
+	validate.RegisterValidation("password-strength", utils.ValidatePassword)
+	if err := validate.Struct(userRegister); err != nil {
+		c.JSON(http.StatusOK, utils.NewValidatorError(err))
+		return
+	}
+
+	email := userRegister.Email
+	password := userRegister.Password
+	_, err := User.FindOneByEmail(email)
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		// Handle record not found
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "Email Already exists!"})
+		return
+	}
+	hashedByte, _ := bcrypt.GenerateFromPassword([]byte(password), 12)
+	_, error := User.SaveUser(&User.User{Email: email, Password: string(hashedByte)})
+	if error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Internal Server Error!"})
+	} else {
+		c.JSON(http.StatusCreated, gin.H{"success": true, "message": "Registered User Successfully!"})
 	}
 }
 
@@ -206,11 +220,7 @@ func RefreshHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Re-create Token successfully!", "token": newToken, "refresh_token": newRefreshToken})
 }
 
-func ProtectedHandler(c *gin.Context) {
-	username, _ := c.Get("username")
-	c.JSON(http.StatusOK, gin.H{"message": "Protected endpoint", "username": username})
-}
-
+// Forgot Password
 func ForgotpasswordHander(c *gin.Context) {
 	var jsonMap map[string]interface{}
 	if err := c.ShouldBindJSON(&jsonMap); err != nil {
@@ -239,6 +249,8 @@ func ForgotpasswordHander(c *gin.Context) {
 	User.UpdateOneByEmail(email, &User.User{ForgotPasswordToken: resetPasswordToken, ForgotPasswordExpire: time.Now().Format("2006-01-02 15:04:05")})
 	c.JSON(http.StatusOK, gin.H{"message": "Sent Mail To Reset Password Success!"})
 }
+
+// Reset Password
 func ResetpasswordHandler(c *gin.Context) {
 	email := c.DefaultQuery("email", "")
 	resetToken := c.DefaultQuery("token", "")
@@ -257,7 +269,7 @@ func ResetpasswordHandler(c *gin.Context) {
 		return
 	}
 	// Bind Body
-	resetPasswordReq := &ResetPasswordReq{}
+	resetPasswordReq := &ResetPasswordRequest{}
 	_ = c.ShouldBind(&resetPasswordReq)
 	validate := validator.New()
 	validate.RegisterValidation("password-strength", utils.ValidatePassword)
@@ -278,9 +290,15 @@ func ResetpasswordHandler(c *gin.Context) {
 	ResponseHandler(c, true, "Reset password successfully!", http.StatusOK)
 }
 
+// Response Helper
 func ResponseHandler(c *gin.Context, success bool, message string, statusCode int) {
 	if statusCode == 0 {
 		statusCode = http.StatusOK
 	}
 	c.JSON(statusCode, gin.H{"error": success, "message": message})
 }
+
+// func ProtectedHandler(c *gin.Context) {
+// 	username, _ := c.Get("username")
+// 	c.JSON(http.StatusOK, gin.H{"message": "Protected endpoint", "username": username})
+// }
