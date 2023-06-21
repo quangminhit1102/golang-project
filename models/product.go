@@ -15,13 +15,21 @@ type Product struct {
 	Price       float32   `json:"price" validator:"required"`
 	Description string    `json:"description"`
 	Image       string    `json:"image"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	UserId      uuid.UUID
+	CreatedAt   time.Time `json:"create_at"`
+	UpdatedAt   time.Time `json:"update_at"`
+	UserId      uuid.UUID `json:"-"` // Hide in JSON format
+}
+
+// Find All Products => Gorm.DB
+func FindAllProduct() (*[]Product, error) {
+	db := database.GetDB()
+	products := &[]Product{}
+	err := db.Order("created_at desc").Find(products).Error
+	return products, err
 }
 
 // Create Product Function (Product -> uuid,error)
-func CreateProduct(product Product) (uuid.UUID, error) {
+func CreateProduct(product *Product) (uuid.UUID, error) {
 	db := database.GetDB()
 	error := db.Create(product).Error
 	return product.Id, error
