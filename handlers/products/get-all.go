@@ -8,6 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var productsPerPage int = 2 // Products each page
+
+// Get All Pruducts Handler
 func GetAllProduct(c *gin.Context) {
 	page := c.DefaultQuery("page", "1")
 	username, _ := c.Get("username")

@@ -9,14 +9,14 @@ import (
 
 var secret = "your-secret-key"
 
-func GenerateAccessToken(username string, duration int64) (string, error) {
+func GenerateAccessToken(userId string, duration int64) (string, error) {
 	config, err := config.InitConfig()
 	if err != nil {
 		return "", err
 	}
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["username"] = username
+	claims["UserId"] = userId
 	claims["exp"] = time.Now().Add(time.Duration(duration)).Unix() // Token expires in 24 hours
 
 	accessToken, err := token.SignedString([]byte(config.ServerConfig.JwtSecretKey))

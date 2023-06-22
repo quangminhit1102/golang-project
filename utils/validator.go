@@ -32,8 +32,12 @@ func NewValidatorError(err error) CommonError {
 			res.Errors[v.Field()] = fmt.Sprintf("%s is required if %s is not supplied", v.Field(), v.Param())
 		case "password-strength":
 			res.Errors[v.Field()] = "Password mus contain at least 1 Uppercase, 1 Lower case, 1 number, 1 special character"
+		case "is-numeric":
+			res.Errors[v.Field()] = fmt.Sprintf("%s must be a numeric!", v.Field())
 		case "min":
 			res.Errors[v.Field()] = fmt.Sprintf("%s must be minimum %s characters length", v.Field(), v.Param())
+		case "gtcsfield":
+			res.Errors[v.Field()] = fmt.Sprintf("%s must greater than %s", v.Field(), v.Param())
 		case "contains":
 			res.Errors[v.Field()] = fmt.Sprintf("%s must contain at least one %s", v.Field(), v.Param())
 		case "eqcsfield":

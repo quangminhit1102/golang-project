@@ -85,13 +85,13 @@ func LoginHandler(c *gin.Context) {
 	// Check Password
 	if user != nil && errorCompare == nil {
 		// Create the token
-		tokenString, err := utils.GenerateAccessToken(email, int64(time.Minute))
+		tokenString, err := utils.GenerateAccessToken(user.Id.String(), int64(time.Minute))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 			return
 		}
 		// Create Refresh Token
-		refresh_token, err := utils.GenerateAccessToken(email, int64(time.Hour*24))
+		refresh_token, err := utils.GenerateAccessToken(user.Id.String(), int64(time.Hour*24))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
 			return
@@ -195,16 +195,16 @@ func RefreshHandler(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
 		return
 	}
-	email := claims["username"].(string)
+
 
 	// Generate a new access token
-	newToken, err := utils.GenerateAccessToken(email, int64(time.Minute))
+	newToken, err := utils.GenerateAccessToken(user.Id.String(), int64(time.Minute))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
 		return
 	}
 	// Generate a new refresh token
-	newRefreshToken, err := utils.GenerateAccessToken(email, int64(time.Hour*24))
+	newRefreshToken, err := utils.GenerateAccessToken(user.Id.String(), int64(time.Hour*24))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
 		return

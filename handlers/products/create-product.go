@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	Product "restfulAPI/Golang/models"
+	User "restfulAPI/Golang/models"
 	"restfulAPI/Golang/utils"
 
 	"github.com/gin-gonic/gin"
@@ -11,24 +12,23 @@ import (
 )
 
 type ProductCreateRequest struct {
-	Name        string  `json:"name" validator:"required"`
-	Price       float32 `json:"price" validator:"required"`
+	Name        string  `json:"name" validate:"required"`
+	Price       float64 `json:"price" validate:"gt=0"`
 	Description string  `json:"description"`
 	Image       string  `json:"image"`
 }
-
+// Create Pruducts Handler
 func CreateProduct(c *gin.Context) {
 	productCreateReq := &ProductCreateRequest{}
-	if err := c.ShouldBind(&productCreateReq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Binding Error"})
-		return
-	}
-
+	_ = c.ShouldBind(&productCreateReq)
 	validate := validator.New()
+
 	if err := validate.Struct(productCreateReq); err != nil {
 		c.JSON(http.StatusOK, utils.NewValidatorError(err))
 		return
 	}
+	username, _ := c.Get("username")
+	user, err := User.FindOneByEmail(string(username))
 	productId, err := Product.CreateProduct(
 		&Product.Product{
 			Id:          uuid.New(),

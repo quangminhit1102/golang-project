@@ -11,8 +11,8 @@ import (
 
 type Product struct {
 	Id          uuid.UUID `gorm:"type:uuid" json:"Id"` // default:uuid_generate_v4() Must Create Feature UUID in DB: -> ostgres "CREATE EXTENSION IF NOT EXISTS "uuid-ossp";"
-	Name        string    `json:"name" validator:"required"`
-	Price       float32   `json:"price" validator:"required"`
+	Name        string    `json:"name" validate:"required"`
+	Price       float64   `json:"price" validate:"required"`
 	Description string    `json:"description"`
 	Image       string    `json:"image"`
 	CreatedAt   time.Time `json:"create_at"`
