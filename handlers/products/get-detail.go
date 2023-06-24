@@ -12,11 +12,12 @@ import (
 func ProductDetail(c *gin.Context) {
 	productId := c.Param("id")
 	productUUID, err := uuid.Parse(productId)
+	userId := c.GetString("UserId")
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "Product not found!"})
 		return
 	}
-	product, err := Product.FindOneProduct(&Product.Product{Id: productUUID})
+	product, err := Product.FindOneProduct(&Product.Product{Id: productUUID, UserId: uuid.Must(uuid.Parse(userId))})
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "Product not found!"})
 		return

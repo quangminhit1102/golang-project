@@ -25,10 +25,10 @@ type (
 		Password string `json:"password" validate:"required"`
 	}
 	LoginResponse struct {
-		success       bool
-		message       string
-		token         string
-		refresh_token string
+		Success       bool   `json:"success"`
+		Message       string `json:"message"`
+		Token         string `json:"token"`
+		Refresh_token string `json:"refresh_token"`
 	}
 )
 
@@ -85,7 +85,7 @@ func LoginHandler(c *gin.Context) {
 	// Check Password
 	if user != nil && errorCompare == nil {
 		// Create the token
-		tokenString, err := utils.GenerateAccessToken(user.Id.String(), int64(time.Minute))
+		tokenString, err := utils.GenerateAccessToken(user.Id.String(), int64(time.Minute*15))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 			return
@@ -107,7 +107,7 @@ func LoginHandler(c *gin.Context) {
 		c.SetCookie("refresh_token", refresh_token, config.ServerConfig.RefreshTokenMaxAge, "/", "localhost", false, true)
 		c.SetCookie("logged_in", "true", config.ServerConfig.AccessTokenMaxAge, "/", "localhost", false, false)
 
-		c.JSON(http.StatusOK, &LoginResponse{success: true, message: "Authentication Successfully!", token: tokenString, refresh_token: refresh_token})
+		c.JSON(http.StatusOK, &LoginResponse{Success: true, Message: "Authentication Successfully!", Token: tokenString, Refresh_token: refresh_token})
 		// c.JSON(http.StatusOK, gin.H{"success": true, "message": "Authentication Successfully!", "token": tokenString, "refresh_token": refresh_token})
 	} else {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "Email or Password are invalid!"})
@@ -188,14 +188,6 @@ func RefreshHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid refresh Token!"})
 		return
 	}
-
-	// Extract the username from the claims
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || !token.Valid {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
-		return
-	}
-
 
 	// Generate a new access token
 	newToken, err := utils.GenerateAccessToken(user.Id.String(), int64(time.Minute))

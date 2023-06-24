@@ -18,13 +18,43 @@ type Product struct {
 	CreatedAt   time.Time `json:"create_at"`
 	UpdatedAt   time.Time `json:"update_at"`
 	UserId      uuid.UUID `json:"-"` // Hide in JSON format
+	User        User
+}
+type ProductWithOutUser struct {
+	Id          uuid.UUID `gorm:"type:uuid" json:"Id"` // default:uuid_generate_v4() Must Create Feature UUID in DB: -> ostgres "CREATE EXTENSION IF NOT EXISTS "uuid-ossp";"
+	Name        string    `json:"name" validate:"required"`
+	Price       float64   `json:"price" validate:"required"`
+	Description string    `json:"description"`
+	Image       string    `json:"image"`
+	CreatedAt   time.Time `json:"create_at"`
+	UpdatedAt   time.Time `json:"update_at"`
+	UserId      uuid.UUID `json:"created_by"` // Hide in JSON format
+}
+type ProductWithUser struct {
+	Id          uuid.UUID `gorm:"type:uuid" json:"Id"` // default:uuid_generate_v4() Must Create Feature UUID in DB: -> ostgres "CREATE EXTENSION IF NOT EXISTS "uuid-ossp";"
+	Name        string    `json:"name" validate:"required"`
+	Price       float64   `json:"price" validate:"required"`
+	Description string    `json:"description"`
+	Image       string    `json:"image"`
+	CreatedAt   time.Time `json:"create_at"`
+	UpdatedAt   time.Time `json:"update_at"`
+	UserId      uuid.UUID `json:"created_by"` // Hide in JSON format
+	User        UserSimple
 }
 
 // Find All Products => Gorm.DB
-func FindAllProduct() (*[]Product, error) {
+func FindAllProducts() (*[]Product, error) {
 	db := database.GetDB()
 	products := &[]Product{}
-	err := db.Order("created_at desc").Find(products).Error
+	err := db.Model(&Product{}).Order("created_at desc").Find(products).Error
+	return products, err
+}
+
+// Find Products Condition => Gorm.DB
+func FindProductsByCondition(condition interface{}) (*[]ProductWithOutUser, error) {
+	db := database.GetDB()
+	products := &[]ProductWithOutUser{}
+	err := db.Model(&Product{}).Order("created_at desc").Find(products).Error
 	return products, err
 }
 
@@ -39,7 +69,9 @@ func CreateProduct(product *Product) (uuid.UUID, error) {
 func FindOneProduct(byField interface{}) (*Product, error) {
 	db := database.GetDB()
 	var product = &Product{}
-	error := db.Where(byField).First(&product).Error
+	error := db.Model(&product).Preload("User", func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&User{}).Select("Id,email,address,created_at").Find(&UserSimple{})
+	}).Where(byField).First(&product).Error
 	return product, error
 }
 

@@ -22,6 +22,13 @@ type User struct {
 	UpdatedAt            time.Time
 	Products             []Product
 }
+type UserSimple struct {
+	Id                   uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primary_key"`
+	Email                string    `gorm:"unique,Index" json:"email" validate:"required,email"`
+	Password             string    `json:"password" validate:"required,min=8,password-strength"`
+	Address              string
+	CreatedAt            time.Time
+}
 
 func FindOneByEmail(email string) (*User, error) {
 	db := database.GetDB()

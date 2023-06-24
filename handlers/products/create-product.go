@@ -17,6 +17,7 @@ type ProductCreateRequest struct {
 	Description string  `json:"description"`
 	Image       string  `json:"image"`
 }
+
 // Create Pruducts Handler
 func CreateProduct(c *gin.Context) {
 	productCreateReq := &ProductCreateRequest{}
@@ -27,8 +28,11 @@ func CreateProduct(c *gin.Context) {
 		c.JSON(http.StatusOK, utils.NewValidatorError(err))
 		return
 	}
-	username, _ := c.Get("username")
-	user, err := User.FindOneByEmail(string(username))
+	UserId := c.GetString("UserId")
+	user, err := User.FindOneByCondition(&User.User{Id: uuid.Must(uuid.Parse(UserId))})
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"success": false, "message": "User Not Found!"})
+	}
 	productId, err := Product.CreateProduct(
 		&Product.Product{
 			Id:          uuid.New(),
@@ -36,7 +40,7 @@ func CreateProduct(c *gin.Context) {
 			Price:       productCreateReq.Price,
 			Description: productCreateReq.Description,
 			Image:       productCreateReq.Image,
-			UserId:      uuid.Must(uuid.Parse("d67a4ed2-ed34-4fcc-954a-78349b267398")),
+			UserId:      user.Id,
 		})
 	if err != nil {
 		c.JSON(http.StatusOK, utils.NewValidatorError(err))
