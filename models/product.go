@@ -18,7 +18,7 @@ type Product struct {
 	CreatedAt   time.Time `json:"create_at"`
 	UpdatedAt   time.Time `json:"update_at"`
 	UserId      uuid.UUID `json:"-"` // Hide in JSON format
-	User        User
+	User        User      `gorm:"foreignKey:UserId"`
 }
 type ProductWithOutUser struct {
 	Id          uuid.UUID `gorm:"type:uuid" json:"Id"` // default:uuid_generate_v4() Must Create Feature UUID in DB: -> ostgres "CREATE EXTENSION IF NOT EXISTS "uuid-ossp";"
@@ -28,7 +28,7 @@ type ProductWithOutUser struct {
 	Image       string    `json:"image"`
 	CreatedAt   time.Time `json:"create_at"`
 	UpdatedAt   time.Time `json:"update_at"`
-	UserId      uuid.UUID `json:"created_by"` // Hide in JSON format
+	UserId      uuid.UUID
 }
 type ProductWithUser struct {
 	Id          uuid.UUID `gorm:"type:uuid" json:"Id"` // default:uuid_generate_v4() Must Create Feature UUID in DB: -> ostgres "CREATE EXTENSION IF NOT EXISTS "uuid-ossp";"
@@ -38,7 +38,7 @@ type ProductWithUser struct {
 	Image       string    `json:"image"`
 	CreatedAt   time.Time `json:"create_at"`
 	UpdatedAt   time.Time `json:"update_at"`
-	UserId      uuid.UUID `json:"created_by"` // Hide in JSON format
+	UserId      uuid.UUID
 	User        UserSimple
 }
 
@@ -54,35 +54,57 @@ func FindAllProducts() (*[]Product, error) {
 func FindProductsByCondition(condition interface{}) (*[]ProductWithOutUser, error) {
 	db := database.GetDB()
 	products := &[]ProductWithOutUser{}
-	err := db.Model(&Product{}).Order("created_at desc").Find(products).Error
+	err := db.Model(&Product{}).Order("created_at desc").Where(condition).Find(products).Error
+	return products, err
+}
+
+// Find Products Condition => Gorm.DB
+func FindProductsWithPagination(
+	page,
+	pageSize int,
+	searchString string,
+	condition interface{},
+) (*[]ProductWithOutUser, error) {
+
+	db := database.GetDB()
+	products := &[]ProductWithOutUser{}
+
+	start := (page - 1) * pageSize
+
+	err := db.Model(&Product{}).Limit(pageSize).Offset(start).Order("created_at desc").Where(condition).Where("name like ?", "%"+searchString+"%").Find(products).Error
 	return products, err
 }
 
 // Create Product Function (Product -> uuid,error)
-func CreateProduct(product *Product) (uuid.UUID, error) {
+func CreateProduct(product *Product) (*Product, error) {
 	db := database.GetDB()
 	error := db.Create(product).Error
-	return product.Id, error
+	return product, error
 }
 
 // Find Product Function (byfield -> product,error)
-func FindOneProduct(byField interface{}) (*Product, error) {
+func FindOneProduct(byField interface{}) (*ProductWithUser, error) {
 	db := database.GetDB()
-	var product = &Product{}
-	error := db.Model(&product).Preload("User", func(tx *gorm.DB) *gorm.DB {
-		return tx.Model(&User{}).Select("Id,email,address,created_at").Find(&UserSimple{})
-	}).Where(byField).First(&product).Error
+	var product = &ProductWithUser{}
+	error := db.Model(&Product{}).Preload("User", func(db *gorm.DB) *gorm.DB {
+		return db.Model(&User{}).Find(&UserSimple{})
+	}).Where(byField).First(product).Error
 	return product, error
 }
 
 // Update Product Function (productId + updateField interface{} -> product, error)
-func UpdateProduct(productId uuid.UUID, updateField interface{}) (*Product, error) {
+func UpdateProduct(productId uuid.UUID, updateField interface{}) (*ProductWithUser, error) {
 	db := database.GetDB()
-	product, err := FindOneProduct(&Product{Id: productId})
+	err := db.Find(&Product{}, productId).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return &Product{}, err
+		return &ProductWithUser{}, err
 	}
-	error := db.Model(product).Updates(updateField).Error
+	error := db.Model(&Product{Id: productId}).Updates(updateField).Error
+
+	product, err := FindOneProduct(productId)
+	if err != nil {
+		return &ProductWithUser{}, err
+	}
 	return product, error
 }
 

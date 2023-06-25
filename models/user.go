@@ -13,7 +13,7 @@ type User struct {
 	Id                   uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primary_key"`
 	Email                string    `gorm:"unique,Index" json:"email" validate:"required,email"`
 	Password             string    `json:"password" validate:"required,min=8,password-strength"`
-	Address              string
+	Address              string    `json:"address" gorm:"default:Tp Ho Chi Minh"`
 	Token                string
 	RefreshToken         string
 	ForgotPasswordToken  string
@@ -23,11 +23,10 @@ type User struct {
 	Products             []Product
 }
 type UserSimple struct {
-	Id                   uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primary_key"`
-	Email                string    `gorm:"unique,Index" json:"email" validate:"required,email"`
-	Password             string    `json:"password" validate:"required,min=8,password-strength"`
-	Address              string
-	CreatedAt            time.Time
+	Id        uuid.UUID
+	Email     string    `json:"email"`
+	Address   string    `json:"address"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func FindOneByEmail(email string) (*User, error) {

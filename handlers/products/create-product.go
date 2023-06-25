@@ -11,12 +11,19 @@ import (
 	"github.com/google/uuid"
 )
 
-type ProductCreateRequest struct {
-	Name        string  `json:"name" validate:"required"`
-	Price       float64 `json:"price" validate:"gt=0"`
-	Description string  `json:"description"`
-	Image       string  `json:"image"`
-}
+type (
+	ProductCreateRequest struct {
+		Name        string  `json:"name" validate:"required"`
+		Price       float64 `json:"price" validate:"gt=0"`
+		Description string  `json:"description"`
+		Image       string  `json:"image"`
+	}
+	ProductCreateResponse struct {
+		Success bool        `json:"success"`
+		Message string      `json:"message"`
+		Data    interface{} `json:"data"`
+	}
+)
 
 // Create Pruducts Handler
 func CreateProduct(c *gin.Context) {
@@ -31,9 +38,9 @@ func CreateProduct(c *gin.Context) {
 	UserId := c.GetString("UserId")
 	user, err := User.FindOneByCondition(&User.User{Id: uuid.Must(uuid.Parse(UserId))})
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"success": false, "message": "User Not Found!"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "User Not Found!"})
 	}
-	productId, err := Product.CreateProduct(
+	product, err := Product.CreateProduct(
 		&Product.Product{
 			Id:          uuid.New(),
 			Name:        productCreateReq.Name,
@@ -43,8 +50,8 @@ func CreateProduct(c *gin.Context) {
 			UserId:      user.Id,
 		})
 	if err != nil {
-		c.JSON(http.StatusOK, utils.NewValidatorError(err))
+		c.JSON(http.StatusBadRequest, utils.NewValidatorError(err))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"Id": productId})
+	c.JSON(http.StatusOK, &ProductCreateResponse{Success: true, Message: "Created Product Successfully!", Data: product})
 }
