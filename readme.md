@@ -75,8 +75,61 @@ title: JWT Refresh Token
 :::
 ### **End-Point Routers**
 #### **Auth Endpoint**
-#### **Product Endpoint**
-
+##### Login : POST
+{{BaseAPI}}/{{version}}/auth/login
+##### Register
+{{BaseAPI}}/{{version}}/auth/register
+```
+{
+    "email":"minh@gmail.com",
+    "password":"Abc@123456"
+}
+```
+##### Forgot Password : POST
+{{BaseAPI}}/{{version}}/auth/forgot-password
+ ```
+{
+    "email":"minh@gmail.com"
+}
+```
+##### Reset Password : POST
+{{BaseAPI}}/{{version}}/auth/?email=abc@gmail.com & token=abcd-bdfe-xyz
+```
+{
+    "newPassword":"Abc@1234567",
+    "confirmPassword":"Abc@1234567"
+}
+```
+#### **Product Endpoint** (All require Authentication Token)
+##### Get All Product (Pagination) : GET
+{{BaseAPI}}/{{version}}/product/get-all/?page=1&search=searchString
+##### Get Product Detail : GET
+{{BaseAPI}}/{{version}}/product/:id
+##### Create New Product : POST
+{{BaseAPI}}/{{version}}/product/add
+```
+{
+ "name":"003",
+ "price": 12,
+ "description":"Love",
+ "image":"Image"
+}
+   ```
+##### Update Product : PUT
+{{BaseAPI}}/{{version}}/product/:id
+Example body:
+```
+{
+    "name":"Update Name",
+    "price":111,
+    "description":"Updated",
+    "image":"Updated"
+}
+```
+##### Delete Product : DELETE
+{{BaseAPI}}/{{version}}/product/:id
+```
+```
 ```
 //                       _oo0oo_
 //                      o8888888o
@@ -100,4 +153,5 @@ title: JWT Refresh Token
 //     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //        Phật phù hộ, Tối nay con được ngủ sớm
 //     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+```
 ```
